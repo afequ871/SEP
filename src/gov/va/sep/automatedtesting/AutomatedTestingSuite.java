@@ -144,15 +144,15 @@ public abstract class AutomatedTestingSuite {
 		return prop;
 	}
 	
-	public String getSecureEmailLinkFromGmail() throws Exception{
-		String emailLink	=	null;
+	public String getSecureCodeFromGmail() throws Exception{
+		String securityCode	=	null;
 		try{
 	        	Properties props = System.getProperties();
 	        	props.setProperty("mail.store.protocol", "imaps");
 
 	            Session session = Session.getDefaultInstance(props, null);
 	            Store store = session.getStore("imaps");
-	            store.connect("imap.gmail.com", "bbmitestuser","bbmitest123");
+	            store.connect("imap.gmail.com", "sep.pwc","septest!");
 
 	            Folder folder = store.getFolder("INBOX");
 	            folder.open(Folder.READ_WRITE);
@@ -167,7 +167,7 @@ public abstract class AutomatedTestingSuite {
 	            //Search for mail from God
 	            for (int i = 0; i < 5; i++) {
 	                messages = folder.search(new SubjectTerm(
-	                        "Notification of new Direct email message"),
+	                        "SMS from "),
 	                        folder.getMessages());
 	                //Wait for 10 seconds
 	                if (messages.length == 0) {
@@ -205,13 +205,13 @@ public abstract class AutomatedTestingSuite {
 
 	                //Your logic to split the message and get the Registration URL goes here
 //	                String registrationURL = buffer.toString().split("https://158.147.211.124/<wbr>JavaBridge/mail/src/login.php")[0].split("href=")[1];
-	                emailLink	=	buffer.toString().substring(buffer.toString().indexOf("https://"));
-	                System.out.println("registrationURL--->"+emailLink);                            
+	                securityCode	=	buffer.toString().substring(new String("Your Symantec VIP security code is ").lastIndexOf(" "),buffer.toString().indexOf("--"));
+	                System.out.println("Security codeL--->"+securityCode);                            
 	            }
 	    
 		}catch(Exception e){
 			e.printStackTrace();
 		}
-		return emailLink.trim();
+		return securityCode.trim();
 	}
 }
