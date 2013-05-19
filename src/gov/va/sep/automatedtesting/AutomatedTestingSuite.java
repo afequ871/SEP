@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.mail.Flags;
@@ -74,6 +75,7 @@ public abstract class AutomatedTestingSuite {
 		caps.setCapability(CapabilityType.LOGGING_PREFS, logs); 
 		driver = new FirefoxDriver(caps);
 		driver.manage().window().maximize();
+		driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
 		//driver = new FirefoxDriver();
 		
 		s = new Screen();

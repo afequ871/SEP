@@ -2,7 +2,6 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry exported="true" kind="lib" path="lib/selenium-server-standalone-2.25.0.jar"/>
 	<classpathentry exported="true" kind="lib" path="C:/Program Files (x86)/Sikuli X/sikuli-script.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/junit-4.10.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/logback-classic-1.0.7.jar"/>
@@ -10,5 +9,8 @@
 	<classpathentry exported="true" kind="lib" path="lib/sikuli-script.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/slf4j-api-1.7.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/javax.mail.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/selenium-java-2.32.0-srcs.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/selenium-java-2.32.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/selenium-server-standalone-2.32.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
