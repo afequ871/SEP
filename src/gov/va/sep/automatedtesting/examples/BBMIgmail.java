@@ -2,7 +2,7 @@ package gov.va.sep.automatedtesting.examples;
 
 
 	import static org.junit.Assert.fail;
-import gov.va.sep.automatedtesting.AutomatedTestingSuite;
+import gov.va.sep.automatedtesting.suites.AutomatedTestingSuite;
 
 import java.awt.AWTException;
 import java.awt.Robot;

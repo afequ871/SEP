@@ -1,7 +1,7 @@
 package gov.va.sep.automatedtesting.examples;
 
 import static org.junit.Assert.assertTrue;
-import gov.va.sep.automatedtesting.AutomatedTestingSuite;
+import gov.va.sep.automatedtesting.suites.AutomatedTestingSuite;
 
 import org.junit.Test;
 import org.openqa.selenium.By;

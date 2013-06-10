@@ -1,4 +1,4 @@
-package gov.va.sep.automatedtesting;
+package gov.va.sep.automatedtesting.objects;
 
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;

@@ -1,4 +1,4 @@
-package gov.va.sep.automatedtesting;
+package gov.va.sep.automatedtesting.objects;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

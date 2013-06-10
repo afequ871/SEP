@@ -1,16 +1,19 @@
 package gov.va.sep.automatedtesting.suites;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import gov.va.sep.automatedtesting.AutomatedTestingSuite;
+
+import java.util.Properties;
 
 import org.junit.Test;
 import org.openqa.selenium.By;
 import org.openqa.selenium.support.ui.Select;
+import gov.va.sep.automatedtesting.objects.template.*;
 
 public class SEPLoginLogout extends AutomatedTestingSuite {
-	private static StringBuffer verificationErrors = new StringBuffer();
+	//private static StringBuffer verificationErrors = new StringBuffer();
+	public Properties propertyFile = getTestProperties("vet1");
+	LoginTemplate loginTemp = new LoginTemplate(propertyFile);
+	
 	@Test
 	public void LoginLogout() throws Throwable {
 		
@@ -20,43 +23,14 @@ public class SEPLoginLogout extends AutomatedTestingSuite {
 		driver.get(getProperties().getProperty("URL"));
 		logger.info("::getting the URL from the properties file :: The URL is ::"+getProperties().getProperty("URL"));
 		r.delay(5000);
+		//Login
+		login(loginTemp);
+		logger.info("::Logged in successful::");
+		r.delay(10000); 
 		
-		driver.findElement(By.cssSelector("#login_pass > div")).click();
-	    driver.findElement(By.cssSelector("#modalAction > div")).click();
-	    // ERROR: Caught exception [ERROR: Unsupported command [waitForPopUp | _self | 30000]]
-	    String username = "sep.pwc@gmail.com";
-	    String password = "septest123";
-	    driver.findElement(By.id("username")).clear();
-	    driver.findElement(By.id("username")).sendKeys(username);
-	    logger.info("::The username is " + username + "::");
-	    driver.findElement(By.id("password")).clear();
-	    driver.findElement(By.id("password")).sendKeys(password);
-	    logger.info("::The password is " + password + "::");
-	    driver.findElement(By.cssSelector("input.yellow_submit_button")).click();
-	    logger.info("::The sign in button was clicked::");
-	    r.delay(5000);
-	    
-	    //Send SMS Security-code to SMS device
-	    driver.findElement(By.id("btn-submit")).click();
-	    logger.info("::The Send button for SMS Security-code was clicked::");
-	    r.delay(5000);
-	    
-	    //Retrieve SMS Security-code and submit for login
-	    //driver.findElement(By.cssSelector("div.TN.GLujEb")).click();
-	    String retrievedSMSCode = getSecureCodeFromGmail();
-	    logger.info("::The Security code is " + retrievedSMSCode + "::");
-	    driver.findElement(By.id("smsCode")).clear();
-	    driver.findElement(By.id("smsCode")).sendKeys(retrievedSMSCode);
-	    driver.findElement(By.id("btn-submit")).click();
-	    logger.info("::The continue button was clicked::");
-	    r.delay(10000);
-	    //Logout
-	    driver.findElement(By.id("userLogout")).click();
-	    logger.info("::The Logout button was clicked::");
-	    
-	    
-	    
-	    
+		//Logout
+	    logout();
+	      
 	    
 	    
 		/*driver.findElement(By.name("loginId")).clear();
@@ -198,5 +172,62 @@ public class SEPLoginLogout extends AutomatedTestingSuite {
 		
 	}
 	
+	public static void login(LoginTemplate loginTemp) throws Throwable{
+		//Verification for login page
+		assertTrue(driver.findElement(By.cssSelector("h1")).getText().matches("^[\\s\\S]*" + loginTemp.getLoginHeaderLbl()+ "[\\s\\S]*$"));
+		assertTrue(driver.findElement(By.xpath("//a[@id='login_pass']/div")).getText().matches("^[\\s\\S]*" + loginTemp.getLoginNortonBtnLbl()+ "[\\s\\S]*$"));
+		driver.findElement(By.cssSelector("#login_pass > div")).click();
+		r.delay(5000);
+
+		assertTrue(driver.findElement(By.xpath("//div[@id='mm_body']/div/h3")).getText().matches("^[\\s\\S]*" + loginTemp.getLoginContinueHeaderLbl()+ "[\\s\\S]*$"));
+		assertTrue(driver.findElement(By.xpath("//a[@id='modalAction']/div")).getText().matches("^[\\s\\S]*" + loginTemp.getLoginContinueBtnLbl()+ "[\\s\\S]*$"));
+		driver.findElement(By.cssSelector("#modalAction > div")).click();
+		r.delay(5000);
+
+		//Please sign in page verification and automation
+		assertTrue(driver.findElement(By.xpath("//h1[@id='theHeading']")).getText().matches("^[\\s\\S]*" + loginTemp.getLoginPleaseSignInHeaderLbl()+ "[\\s\\S]*$"));
+		assertTrue(driver.findElement(By.xpath("//input[@class='yellow_submit_button']")).getAttribute("value").matches("^[\\s\\S]*" + loginTemp.getLoginSignInBtnLbl()+ "[\\s\\S]*$"));
+		String username = loginTemp.getLoginEmailAddress();
+		String password = loginTemp.getLoginPassword();
+		driver.findElement(By.id("username")).clear();
+		driver.findElement(By.id("username")).sendKeys(username);
+		logger.info("::The username is " + username + "::");
+		driver.findElement(By.id("password")).clear();
+		driver.findElement(By.id("password")).sendKeys(password);
+		logger.info("::The password is " + password + "::");
+		driver.findElement(By.cssSelector("input.yellow_submit_button")).click();
+		logger.info("::The sign in button was clicked::");
+		r.delay(8000);
+
+		//Send SMS Security-code to SMS device
+		verify("Test -- Verify the Login Security code label text",By.xpath("//h1"),loginTemp.getLoginSecurityCodeHeaderLbl());
+		verify("Test -- Verify the cellphone number text",By.xpath("//div[@class='main-content']/strong"),loginTemp.getLoginSecurityCodeCellNumber());
+		
+		driver.findElement(By.id("btn-submit")).click();
+		logger.info("::The Send button for SMS Security-code was clicked::");
+		r.delay(5000);
+
+		//Retrieve SMS Security-code and submit for login
+		//driver.findElement(By.cssSelector("div.TN.GLujEb")).click();
+		verify("Test -- Verify the Enter Security Code header text",By.xpath("//h1"),loginTemp.getLoginEnterSecurityCodeHeaderLbl());
+		
+		String retrievedSMSCode = getSecureCodeFromGmail();
+		logger.info("::The Security code is " + retrievedSMSCode + "::");
+		driver.findElement(By.id("smsCode")).clear();
+		driver.findElement(By.id("smsCode")).sendKeys(retrievedSMSCode);
+		driver.findElement(By.id("btn-submit")).click();
+		logger.info("::The continue button was clicked::");			    
+	}
+	
+	public static void logout() throws Throwable{
+		driver.findElement(By.id("userLogout")).click();
+	    logger.info("::The Logout button was clicked::");
+	    
+	  //Output verification Errors
+	    String verificationErrorString = verificationErrors.toString();
+	    if (!"".equals(verificationErrorString)) {
+			logger.info("\n---Verification Errors---"+ verificationErrorString);
+		}
+	}
 	
 }//end of class.

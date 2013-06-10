@@ -7,7 +7,7 @@ import static org.junit.Assert.fail;
 
 import java.awt.event.KeyEvent;
 
-import gov.va.sep.automatedtesting.AutomatedTestingSuite;
+import gov.va.sep.automatedtesting.suites.AutomatedTestingSuite;
 
 import org.junit.Test;
 import org.openqa.selenium.By;

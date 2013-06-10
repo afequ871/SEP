@@ -1,5 +1,7 @@
-package gov.va.sep.automatedtesting;
+package gov.va.sep.automatedtesting.suites;
 
+import static org.junit.Assert.assertTrue;
+import gov.va.sep.automatedtesting.objects.ResultsLogWatchMan;
 
 import java.awt.AWTException;
 import java.awt.Robot;
@@ -9,7 +11,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.mail.Flags;
@@ -22,6 +23,7 @@ import javax.mail.search.SubjectTerm;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.ie.InternetExplorerDriver;
@@ -42,15 +44,29 @@ public abstract class AutomatedTestingSuite {
 	protected static Robot r;
 	protected static Properties props;
 	protected static boolean fireFoxDriverSelected;
+	protected static StringBuffer verificationErrors;
 	@Rule
 	public ResultsLogWatchMan resultLogWatchMan = ResultsLogWatchMan.getInstance();
 	
-
+/*	static {
+		props = new Properties();
+		ClassLoader loader = Thread.currentThread().getContextClassLoader();           
+		InputStream stream = loader.getResourceAsStream("suite.properties");
+		try {
+			props.load(stream);
+			stream.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+		
+}*/
 	
 	public AutomatedTestingSuite() {
 		
 		// Add to the desired logger
-		logger = LoggerFactory.getLogger("sep.testing.results");
+		logger = LoggerFactory.getLogger("SEP.testing.results");
+		verificationErrors = new StringBuffer();
 		
 		fireFoxDriverSelected = Boolean.parseBoolean(getProperties().getProperty("FireFoxDriver"));
 		if (fireFoxDriverSelected)
@@ -58,16 +74,47 @@ public abstract class AutomatedTestingSuite {
 		else
 			setupIEDriver();
 		
-
+//		FileOutputStream outfos = null;
+//		try {
+//			outfos = new FileOutputStream("C:/selenium/SeleniumLog/testOutput.html");
+//		} catch (FileNotFoundException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} //create //new output stream
+//
+//		PrintStream newoutps = new PrintStream(outfos); //create new output //stream
+//
+//		System.setOut(newoutps); //set the output stream
 	}
 	
-	
-
+	/**
+	 * This is ran before each test suite. It launches a new firefox browser 
+	 * and checks to make sure the server is running.
+	 */
+//	@BeforeClass
+//	public static void checkServer() { //TODO: re-add the server check?
+//		
+//		WebDriver checkServerDriver = new FirefoxDriver();
+//
+//		//if this throws an exception, it should prevent the test from running.
+//		checkServerDriver.get("http://158.147.211.123:8080/manager/status");
+//		checkServerDriver.findElement(By.cssSelector("img[alt=\"The Tomcat Servlet/JSP Container\"]"));
+//		checkServerDriver.get("http://158.147.211.125/EmrSvc.asmx");
+//		checkServerDriver.findElement(By.linkText("addDataSource"));
+//
+//	}
 	
 	
 	public static void setupFirefoxDriver() {
 		
+		//TODO: see if we can get selenium to record all of its events (ie: click, wait, etc) by default
 		
+		//Setup selenium logger
+//		LoggingPreferences logs = new LoggingPreferences();
+//		logs.enable(LogType.DRIVER, Level.ALL);
+//		DesiredCapabilities capabilities = DesiredCapabilities.firefox();
+//		capabilities.setCapability(CapabilityType.LOGGING_PREFS, logs);
+//		driver = new FirefoxDriver(capabilities);
 		
 		DesiredCapabilities caps = DesiredCapabilities.firefox(); 
 		LoggingPreferences logs = new LoggingPreferences(); 
@@ -75,7 +122,6 @@ public abstract class AutomatedTestingSuite {
 		caps.setCapability(CapabilityType.LOGGING_PREFS, logs); 
 		driver = new FirefoxDriver(caps);
 		driver.manage().window().maximize();
-		driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
 		//driver = new FirefoxDriver();
 		
 		s = new Screen();
@@ -142,11 +188,42 @@ public abstract class AutomatedTestingSuite {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
-		
+		props=prop;
 		return prop;
 	}
+	//TODO: shouldn't be loading properties in each time. Should make a properties singleton
+	public Properties getTestProperties(String propertyName) {
+		Properties prop = new Properties();
+		InputStream in = getClass().getResourceAsStream(propertyName + ".properties");
+		try {
+			prop.load(in);
+			in.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+		props=prop;
+		return prop;
+	}
+	public static void verify(String testName, By actualStatement, String expected){
+		String actual=null;
+		try{	
+			actual = driver.findElement(actualStatement).getText();
+			assertTrue(driver.findElement(actualStatement).getText().matches("^[\\s\\S]*" + expected+ "[\\s\\S]*$"));
+			logger.info(testName + "- expected: " + expected + " -- PASS");
+		}catch(Error e) {
+			logger.info(testName + "- expected: " + expected + " -- FAIL");
+			//logger.info(e.toString());
+		     //fail();
+			verificationErrors.append(testName + "- error: " + e.getLocalizedMessage()+ "\nexpected: " + expected + " - actual: " + actual);
+		}catch(Exception e) {
+			logger.info(testName + "- expected: " + expected + " -- FAIL");
+		     //fail();
+			verificationErrors.append(testName + "- error: " + e.getLocalizedMessage()+ "\nexpected: " + expected + " - actual: " + actual);
+		}
+	}
 	
-	public String getSecureCodeFromGmail() throws Exception{
+	public static String getSecureCodeFromGmail(){
 		String securityCode	=	null;
 		try{
 	        	Properties props = System.getProperties();

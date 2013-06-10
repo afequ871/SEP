@@ -1,4 +1,4 @@
-package gov.va.sep.automatedtesting;
+package gov.va.sep.automatedtesting.objects;
 
 public class SEPException extends Exception {
 

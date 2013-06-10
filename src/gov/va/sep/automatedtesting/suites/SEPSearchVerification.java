@@ -1,13 +1,15 @@
-package gov.va.sep.automatedtesting.examples;
+package gov.va.sep.automatedtesting.suites;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import gov.va.sep.automatedtesting.objects.template.LoginTemplate;
+
 import java.io.InputStream;
 import java.io.StringReader;
+import java.util.Properties;
 
-import gov.va.sep.automatedtesting.suites.AutomatedTestingSuite;
 
 import org.junit.Test;
 import org.openqa.selenium.By;
@@ -22,37 +24,40 @@ import javax.xml.parsers.*;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
+import gov.va.sep.automatedtesting.objects.template.*;
 
-public class BBMILookAndFeel extends AutomatedTestingSuite{
-
-	@Test
-	public void verifyForLoginTable() throws Exception {
-		
+public class SEPSearchVerification extends AutomatedTestingSuite{
+	private static StringBuffer verificationErrors = new StringBuffer();
+	public Properties propertyFile = getTestProperties("vet1");
+	LoginTemplate loginTemp = new LoginTemplate(propertyFile);
+	SearchVetTemplate searchTemp = new SearchVetTemplate(propertyFile);
 	
-		
-		logger.info("::In start of verifyForLoginTable() methdod::");
+	@Test
+	public void SEPSearchVet() throws Throwable {	
+		logger.info("::In start of SEPSearchVet() method::");
 		logger.info("**********Start open application************");
 		driver.get(getProperties().getProperty("URL"));
 		
 		logger.info("::getting the URL from the properties file :: The URL is ::"+getProperties().getProperty("URL"));
 		r.delay(5000);
-		try{
-			logger.info("Test -- Verify the Member Login Text Present or not ");
-			assertTrue(driver.findElement(By.cssSelector("BODY")).getText().matches("^[\\s\\S]*Member Login[\\s\\S]*$"));
-		}catch(Error e) {
-			logger.info(e.toString());
-		     fail();
-		}
+		//Login SEP
+		SEPLoginLogout.login(loginTemp);
 		r.delay(5000);
-		try{
-			logger.info("Test -- Verify the UserID text Present or not");
-			assertTrue(driver.findElement(By.cssSelector("BODY")).getText().matches("^[\\s\\S]*User ID:[\\s\\S]*$"));
-		}catch(Error e) {
-			logger.info(e.toString());
-		     fail();
-		}
+		
+		//Perform Search by SSN
+		searchBySSN(searchTemp);
 		r.delay(5000);
-		driver.findElement(By.name("loginId")).clear();
+		
+		//Search Results verification and no action
+		searchResults(searchTemp, -1);
+		r.delay(5000);
+		
+		//Logout SEP
+		SEPLoginLogout.logout();
+		r.delay(5000);
+		
+		logger.info("::End of SEPSearchVet() method ::");
+		/*driver.findElement(By.name("loginId")).clear();
 		driver.findElement(By.name("loginId")).sendKeys(getProperties().getProperty("userID"));
 		logger.info("::The UserID ::"+getProperties().getProperty("userID"));
 		r.delay(5000);
@@ -196,14 +201,53 @@ public class BBMILookAndFeel extends AutomatedTestingSuite{
 		logger.info("Click on the Logout button");
 		r.delay(5000);
 		driver.findElement(By.cssSelector("input.mhv_button")).click();
-		logger.info("::End of verifyForLoginTable(");
+		logger.info("::End of verifyForLoginTable(");*/
 	}
-	private boolean isElementPresent(By by) {
-	    try {
-	      driver.findElement(by);
-	      return true;
-	    } catch (NoSuchElementException e) {
-	      return false;
-	    }
-	  }
+	
+	public static void searchBySSN(SearchVetTemplate searchTemp) throws Throwable{
+		verify("Test -- Verify the Search header label text",By.xpath("//div[@id='vso_search_container']/h2"),searchTemp.getSearchHeaderLbl());		
+		r.delay(3000);
+		verify("Test -- Verify the SSN label text",By.xpath("//label[@for='ssn']"),searchTemp.getSearchSSNLbl());		
+		r.delay(3000);
+		verify("Test -- Verify the Search for Veteran button text is correct",By.xpath("//a[@id='vet_search_submit']/div"),searchTemp.getSearchForVetLbl());		
+		r.delay(3000);
+		
+		//Check SSN and submit
+		driver.findElement(By.id("ssn")).clear();
+	    driver.findElement(By.id("ssn")).sendKeys(searchTemp.getSearchSSN());
+	    driver.findElement(By.xpath("//a[@id='vet_search_submit']/div")).click();	 
+	}
+	
+	/**
+	 * Validates Search Veteran Results page and as well as selects an action in the dropdown based on
+	 * the actionIndex
+	 * @param searchTemp
+	 * @param actionIndex : -1-None, 0-Access Online Forms, 1-View Claim Status, 2-View Payment History
+	 * @throws Throwable
+	 */
+	public static void searchResults(SearchVetTemplate searchTemp, int actionIndex) throws Throwable{
+		//Validate Search results screen
+		verify("Test -- Verify the Search Results header label text",By.xpath("//div[@id='vso_search_results']/h2"),searchTemp.getSearchResultsHeaderLbl());		
+		r.delay(3000);
+		verify("Test -- Verify the Search Results Veteran name text",By.xpath("//table[@id='vetSearchResults']/tbody/tr/td[1]"),searchTemp.getSearchResultVetName());		
+		r.delay(3000);
+		verify("Test -- Verify the Search Results Veteran DOB text",By.xpath("//table[@id='vetSearchResults']/tbody/tr/td[2]"),searchTemp.getSearchResultVetDOB());		
+		r.delay(3000);
+		verify("Test -- Verify the Search Results Veteran SSN text",By.xpath("//table[@id='vetSearchResults']/tbody/tr/td[3]"),searchTemp.getSearchResultVetSSN());		
+		r.delay(3000);
+		verify("Test -- Verify the Search Results Veteran Location text",By.xpath("//table[@id='vetSearchResults']/tbody/tr/td[4]"),searchTemp.getSearchResultVetLocation());		
+		r.delay(3000);
+		verify("Test -- Verify the Search Results Veteran Representative Through text",By.xpath("//table[@id='vetSearchResults']/tbody/tr/td[5]"),searchTemp.getSearchResultVetRepThrough());		
+		r.delay(3000);		
+		
+		//Click Action dropdown and select appropriate option
+		driver.findElement(By.xpath("//table[@id='vetSearchResults']/tbody/tr/td[6]/div/a/div")).click();
+		
+		if(actionIndex == 0)
+			driver.findElement(By.cssSelector("a[title=\"Access Online Forms\"] > span")).click();
+		else if(actionIndex ==1)
+			driver.findElement(By.cssSelector("a[title=\"View Claim Status\"] > span")).click();
+		else if(actionIndex == 2)
+			driver.findElement(By.cssSelector("a[title=\"View Payment History\"] > span")).click();
+	}
 }//end of class.

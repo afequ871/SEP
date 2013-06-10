@@ -1,4 +1,4 @@
-package gov.va.sep.automatedtesting;
+package gov.va.sep.automatedtesting.objects;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpResponse;

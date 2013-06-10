@@ -7,7 +7,6 @@ import static org.junit.Assert.fail;
 import java.io.InputStream;
 import java.io.StringReader;
 
-import gov.va.sep.automatedtesting.suites.AutomatedTestingSuite;
 
 import org.junit.Test;
 import org.openqa.selenium.By;
@@ -23,7 +22,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
-public class BBMILookAndFeel extends AutomatedTestingSuite{
+public class SEPSearchVerification extends AutomatedTestingSuite{
 
 	@Test
 	public void verifyForLoginTable() throws Exception {
