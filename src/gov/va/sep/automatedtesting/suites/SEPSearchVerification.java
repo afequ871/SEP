@@ -4,10 +4,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import gov.va.sep.automatedtesting.objects.template.LoginTemplate;
 
 import java.io.InputStream;
 import java.io.StringReader;
+import java.util.HashMap;
 import java.util.Properties;
 
 
@@ -24,39 +24,54 @@ import javax.xml.parsers.*;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
-import gov.va.sep.automatedtesting.objects.template.*;
+
+import gov.va.sep.automatedtesting.template.*;
+import gov.va.sep.automatedtesting.utils.LogbackFileUtils;
 
 public class SEPSearchVerification extends AutomatedTestingSuite{
 	private static StringBuffer verificationErrors = new StringBuffer();
-	public Properties propertyFile = getTestProperties("vet1");
+	//public Properties propertyFile = getTestProperties("vet1");
 	LoginTemplate loginTemp = new LoginTemplate(propertyFile);
 	SearchVetTemplate searchTemp = new SearchVetTemplate(propertyFile);
 	
 	@Test
-	public void SEPSearchVet() throws Throwable {	
-		logger.info("::In start of SEPSearchVet() method::");
-		logger.info("**********Start open application************");
-		driver.get(getProperties().getProperty("URL"));
+	public HashMap SEPSearchVet(){	
+		try{
+			strTime = System.currentTimeMillis();
+			LogbackFileUtils.start(this.getClass());
+			logger.info("::In start of SEPSearchVet() method::");
+			logger.info("**********Start open application************");
+			driver.get(getProperties().getProperty("URL"));
+			
+			logger.info("::getting the URL from the properties file :: The URL is ::"+getProperties().getProperty("URL"));
+			r.delay(5000);
+			//Login SEP
+			SEPLoginLogout.login(loginTemp);
+			r.delay(5000);
+			
+			//Perform Search by SSN
+			searchBySSN(searchTemp);
+			r.delay(5000);
+			
+			//Search Results verification and no action
+			searchResults(searchTemp, -1);
+			r.delay(5000);
+			
+			//Logout SEP
+			logger.info("::End of SEPSearchVet() method ::");
+			SEPLoginLogout.logout();			
+			LogbackFileUtils.stop();
+			
+			return returnObj;
+		}catch(Exception e){
+			logger.error("Test Failure: " + e.toString());
+			closeDriver();
+			endTime = System.currentTimeMillis();
+			buildTestStatusObj(true);
+			LogbackFileUtils.stop();
+			return returnObj;
+		}
 		
-		logger.info("::getting the URL from the properties file :: The URL is ::"+getProperties().getProperty("URL"));
-		r.delay(5000);
-		//Login SEP
-		SEPLoginLogout.login(loginTemp);
-		r.delay(5000);
-		
-		//Perform Search by SSN
-		searchBySSN(searchTemp);
-		r.delay(5000);
-		
-		//Search Results verification and no action
-		searchResults(searchTemp, -1);
-		r.delay(5000);
-		
-		//Logout SEP
-		SEPLoginLogout.logout();
-		r.delay(5000);
-		
-		logger.info("::End of SEPSearchVet() method ::");
 		/*driver.findElement(By.name("loginId")).clear();
 		driver.findElement(By.name("loginId")).sendKeys(getProperties().getProperty("userID"));
 		logger.info("::The UserID ::"+getProperties().getProperty("userID"));
@@ -204,19 +219,58 @@ public class SEPSearchVerification extends AutomatedTestingSuite{
 		logger.info("::End of verifyForLoginTable(");*/
 	}
 	
-	public static void searchBySSN(SearchVetTemplate searchTemp) throws Throwable{
-		verify("Test -- Verify the Search header label text",By.xpath("//div[@id='vso_search_container']/h2"),searchTemp.getSearchHeaderLbl());		
+	public static void searchBySSN(SearchVetTemplate searchTemp){
+		//Search for Veteran by SSN
+		/*verify("Test -- Verify the Search header label text",By.xpath("//div[@id='vso_search_container']/h2"),searchTemp.getSearchHeaderLbl());		
 		r.delay(3000);
 		verify("Test -- Verify the SSN label text",By.xpath("//label[@for='ssn']"),searchTemp.getSearchSSNLbl());		
 		r.delay(3000);
 		verify("Test -- Verify the Search for Veteran button text is correct",By.xpath("//a[@id='vet_search_submit']/div"),searchTemp.getSearchForVetLbl());		
-		r.delay(3000);
+		r.delay(3000);*/
 		
-		//Check SSN and submit
-		driver.findElement(By.id("ssn")).clear();
-	    driver.findElement(By.id("ssn")).sendKeys(searchTemp.getSearchSSN());
+		//Check supplied fields and submit
+		String ssn = searchTemp.getSearchSSN();
+		boolean isSSN = (ssn != null ? true : false);
+		if(isSSN){
+			driver.findElement(By.id("ssn")).clear();
+		    driver.findElement(By.id("ssn")).sendKeys(searchTemp.getSearchSSN());
+		    r.delay(5000);
+		}
+		else{
+			driver.findElement(By.id("first_name")).clear();
+		    driver.findElement(By.id("first_name")).sendKeys(searchTemp.getSearchFirstName());
+		    r.delay(5000);
+		    driver.findElement(By.id("last_name")).clear();
+		    driver.findElement(By.id("last_name")).sendKeys(searchTemp.getSearchLastName());
+		    r.delay(5000);
+		    
+		    driver.findElement(By.id("birth_month")).clear();
+		    driver.findElement(By.id("birth_month")).sendKeys(getDOB_By(searchTemp.getSearchDOB(),"m"));
+		    r.delay(5000);
+		    driver.findElement(By.id("birth_day")).clear();
+		    driver.findElement(By.id("birth_day")).sendKeys(getDOB_By(searchTemp.getSearchDOB(),"d"));
+		    r.delay(5000);
+		    driver.findElement(By.id("birth_year")).clear();
+		    driver.findElement(By.id("birth_year")).sendKeys(getDOB_By(searchTemp.getSearchDOB(),"y"));
+		    r.delay(5000);
+		}
+		
 	    driver.findElement(By.xpath("//a[@id='vet_search_submit']/div")).click();	 
 	}
+	
+	public static String getDOB_By(String dob, String elementNeeded){
+		String value = null;
+		String[] elements = dob.split("//");
+		
+		if(elementNeeded.equals("m") || elementNeeded.equals("M"))
+			value = elements[0];
+		else if(elementNeeded.equals("d") || elementNeeded.equals("D"))
+			value = elements[1];
+		else if(elementNeeded.equals("y") || elementNeeded.equals("Y"))
+			value = elements[2];
+		return value;
+	}
+	
 	
 	/**
 	 * Validates Search Veteran Results page and as well as selects an action in the dropdown based on
@@ -225,26 +279,20 @@ public class SEPSearchVerification extends AutomatedTestingSuite{
 	 * @param actionIndex : -1-None, 0-Access Online Forms, 1-View Claim Status, 2-View Payment History
 	 * @throws Throwable
 	 */
-	public static void searchResults(SearchVetTemplate searchTemp, int actionIndex) throws Throwable{
+	public static void searchResults(SearchVetTemplate searchTemp, int actionIndex){
 		//Validate Search results screen
 		verify("Test -- Verify the Search Results header label text",By.xpath("//div[@id='vso_search_results']/h2"),searchTemp.getSearchResultsHeaderLbl());		
-		r.delay(3000);
 		verify("Test -- Verify the Search Results Veteran name text",By.xpath("//table[@id='vetSearchResults']/tbody/tr/td[1]"),searchTemp.getSearchResultVetName());		
-		r.delay(3000);
 		verify("Test -- Verify the Search Results Veteran DOB text",By.xpath("//table[@id='vetSearchResults']/tbody/tr/td[2]"),searchTemp.getSearchResultVetDOB());		
-		r.delay(3000);
 		verify("Test -- Verify the Search Results Veteran SSN text",By.xpath("//table[@id='vetSearchResults']/tbody/tr/td[3]"),searchTemp.getSearchResultVetSSN());		
-		r.delay(3000);
 		verify("Test -- Verify the Search Results Veteran Location text",By.xpath("//table[@id='vetSearchResults']/tbody/tr/td[4]"),searchTemp.getSearchResultVetLocation());		
-		r.delay(3000);
 		verify("Test -- Verify the Search Results Veteran Representative Through text",By.xpath("//table[@id='vetSearchResults']/tbody/tr/td[5]"),searchTemp.getSearchResultVetRepThrough());		
-		r.delay(3000);		
 		
 		//Click Action dropdown and select appropriate option
 		driver.findElement(By.xpath("//table[@id='vetSearchResults']/tbody/tr/td[6]/div/a/div")).click();
 		
 		if(actionIndex == 0)
-			driver.findElement(By.cssSelector("a[title=\"Access Online Forms\"] > span")).click();
+			driver.findElement(By.cssSelector("a[title=\"VDC\"] > span")).click();
 		else if(actionIndex ==1)
 			driver.findElement(By.cssSelector("a[title=\"View Claim Status\"] > span")).click();
 		else if(actionIndex == 2)

@@ -1,7 +1,7 @@
 package gov.va.sep.automatedtesting.suites;
 
 import static org.junit.Assert.assertTrue;
-import gov.va.sep.automatedtesting.objects.ResultsLogWatchMan;
+import gov.va.sep.automatedtesting.utils.*;
 
 import java.awt.AWTException;
 import java.awt.Robot;
@@ -10,7 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Properties;
+import java.util.*;
 import java.util.logging.Level;
 
 import javax.mail.Flags;
@@ -25,13 +25,16 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.remote.RemoteWebDriver;
 import org.sikuli.script.Screen;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,9 +45,13 @@ public abstract class AutomatedTestingSuite {
 	protected static WebDriver driver; //TODO: do we want a new instance of this each time, or should this be singleton?
 	protected static Screen s;
 	protected static Robot r;
+	protected static Properties propertyFile;
 	protected static Properties props;
 	protected static boolean fireFoxDriverSelected;
 	protected static StringBuffer verificationErrors;
+	protected static HashMap returnObj;
+	protected static long strTime;
+	protected static long endTime;
 	@Rule
 	public ResultsLogWatchMan resultLogWatchMan = ResultsLogWatchMan.getInstance();
 	
@@ -64,8 +71,12 @@ public abstract class AutomatedTestingSuite {
 	
 	public AutomatedTestingSuite() {
 		
-		// Add to the desired logger
-		logger = LoggerFactory.getLogger("SEP.testing.results");
+		// Add to the desired logger		
+		returnObj = new HashMap();
+		returnObj.put("testName", this.getClass().getSimpleName());		
+		
+		propertyFile = getTestProperties(this.getClass().getSimpleName());
+		logger = LoggerFactory.getLogger(this.getClass());
 		verificationErrors = new StringBuffer();
 		
 		fireFoxDriverSelected = Boolean.parseBoolean(getProperties().getProperty("FireFoxDriver"));
@@ -110,19 +121,13 @@ public abstract class AutomatedTestingSuite {
 		//TODO: see if we can get selenium to record all of its events (ie: click, wait, etc) by default
 		
 		//Setup selenium logger
-//		LoggingPreferences logs = new LoggingPreferences();
-//		logs.enable(LogType.DRIVER, Level.ALL);
-//		DesiredCapabilities capabilities = DesiredCapabilities.firefox();
-//		capabilities.setCapability(CapabilityType.LOGGING_PREFS, logs);
-//		driver = new FirefoxDriver(capabilities);
-		
 		DesiredCapabilities caps = DesiredCapabilities.firefox(); 
 		LoggingPreferences logs = new LoggingPreferences(); 
 		logs.enable(LogType.DRIVER, Level.ALL); 
 		caps.setCapability(CapabilityType.LOGGING_PREFS, logs); 
 		driver = new FirefoxDriver(caps);
 		driver.manage().window().maximize();
-		//driver = new FirefoxDriver();
+		
 		
 		s = new Screen();
 		try {
@@ -150,14 +155,10 @@ public abstract class AutomatedTestingSuite {
 		LoggingPreferences logs = new LoggingPreferences(); 
 		logs.enable(LogType.DRIVER, Level.ALL); 
 		DesiredCapabilities caps = DesiredCapabilities.internetExplorer(); 
-		caps.setCapability(InternetExplorerDriver.INTRODUCE_FLAKINESS_BY_IGNORING_SECURITY_DOMAINS, false);
-		
-		caps.setCapability(CapabilityType.LOGGING_PREFS, logs); 
-		
-		
-			driver	=	new InternetExplorerDriver(caps);
-			
-	
+		caps.setCapability(InternetExplorerDriver.INTRODUCE_FLAKINESS_BY_IGNORING_SECURITY_DOMAINS, false);		
+		caps.setCapability(CapabilityType.LOGGING_PREFS, logs); 		
+		driver	=	new InternetExplorerDriver(caps);
+				
 		try {
 			s = new Screen();
 			r = new Robot();
@@ -202,25 +203,86 @@ public abstract class AutomatedTestingSuite {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
-		props=prop;
+		propertyFile=prop;
 		return prop;
 	}
-	public static void verify(String testName, By actualStatement, String expected){
+	public static void verify(String testName, By actualStatement, String expectedValue){
 		String actual=null;
-		try{	
-			actual = driver.findElement(actualStatement).getText();
-			assertTrue(driver.findElement(actualStatement).getText().matches("^[\\s\\S]*" + expected+ "[\\s\\S]*$"));
-			logger.info(testName + "- expected: " + expected + " -- PASS");
-		}catch(Error e) {
-			logger.info(testName + "- expected: " + expected + " -- FAIL");
-			//logger.info(e.toString());
-		     //fail();
-			verificationErrors.append(testName + "- error: " + e.getLocalizedMessage()+ "\nexpected: " + expected + " - actual: " + actual);
-		}catch(Exception e) {
-			logger.info(testName + "- expected: " + expected + " -- FAIL");
-		     //fail();
-			verificationErrors.append(testName + "- error: " + e.getLocalizedMessage()+ "\nexpected: " + expected + " - actual: " + actual);
+		String expected="";
+		List<WebElement> foundElements = null;
+		if(expectedValue !=null && !expectedValue.isEmpty()){
+			try{
+				expected = expectedValue.trim().replaceAll( "\\$", "" );
+				foundElements = driver.findElements(actualStatement);
+				if(foundElements.size() == 1){
+					actual = foundElements.get(0).getText().trim().replaceAll( "\\$", "" );
+					if(testName.contains("cell phone"))
+						actual = actual.replaceAll("\\D+","").substring(Math.max(actual.replaceAll("\\D+","").length() - 10, 0));
+					else if(testName.contains("Detail Received Date") || testName.contains("Detail Type") || testName.contains("Detail Completed Date") || testName.contains("Detail Estimate Completion Date")){
+						String containsVariable = null;
+						if(testName.contains("Received Date"))
+							containsVariable = "Received:";
+						else if(testName.contains("Type"))
+							containsVariable = "Type:";
+						else if(testName.contains("Completed Date"))
+							containsVariable = "Completed:";
+						else if(testName.contains("Estimate Completion Date"))
+							containsVariable = "Completion Date:";
+						String[] actuals = actual.split("\\n");
+						String tempActual = null;
+						int counter = 0;
+						while(tempActual == null && counter < actuals.length){
+							if(actuals[counter].contains(containsVariable))
+								tempActual = actuals[counter].split(":")[1];
+							else
+								counter++;
+						}
+						actual = tempActual;
+					}
+					assertTrue(actual.matches("^[\\s\\S]*" + expected+ "[\\s\\S]*$"));
+				}
+				else if (foundElements.size() > 1){
+					String expectedObjs[] = expectedValue.split("---");
+					if (expectedObjs != null){
+						String[] actuals = new String[foundElements.size()];
+						for(int i =0; i < foundElements.size(); i++){
+							actuals[i] = foundElements.get(i).getText().trim().replaceAll( "\\$", "" );
+							assertTrue(actuals[i].matches("^[\\s\\S]*" + expectedObjs[i] + "[\\s\\S]*$"));
+						}
+					}
+				}
+				else{
+					actual = null;
+					throw new Exception();
+				}
+				logger.info(testName + "- expected: " + expected + " -- PASS");
+			}catch(Throwable e) {
+				logger.info(testName + "- expected: " + expected + " -- FAIL");
+				//logger.info(e.toString());
+			     //fail();
+				verificationErrors.append("\n\n" + testName + "- error: " + e.getLocalizedMessage()+ "\nexpected: " + expected + " - actual: " + actual);
+			}
+			r.delay(1000);
+		}		
+	}
+	public static HashMap buildTestStatusObj(boolean inException){
+		returnObj.put("totalTime", ((endTime-strTime)/1000) + " secs");
+		logger.info("Test execution time: " + returnObj.get("totalTime"));
+		boolean verificationPass= verificationStatus();
+		if(!inException && verificationPass)
+			returnObj.put("result", "PASS");
+		else
+			returnObj.put("result", "FAIL");
+		return returnObj;
+	}
+	public static boolean verificationStatus(){
+		//Output verification Errors
+	    String verificationErrorString = verificationErrors.toString();
+	    if (!"".equals(verificationErrorString)) {
+			logger.info("\n\n-----------Verification Errors-----------"+ verificationErrorString);
+			return false;
 		}
+	    return true;
 	}
 	
 	public static String getSecureCodeFromGmail(){
@@ -231,7 +293,7 @@ public abstract class AutomatedTestingSuite {
 
 	            Session session = Session.getDefaultInstance(props, null);
 	            Store store = session.getStore("imaps");
-	            store.connect("imap.gmail.com", "sep.pwc","septest!");
+	            store.connect("imap.gmail.com", propertyFile.getProperty("loginGMailName").trim(),propertyFile.getProperty("loginGMailPassword").trim());
 
 	            Folder folder = store.getFolder("INBOX");
 	            folder.open(Folder.READ_WRITE);
@@ -242,28 +304,41 @@ public abstract class AutomatedTestingSuite {
 	            Message[] messages = null;
 	            boolean isMailFound = false;
 	            Message mailFromGod= null;
-
-	            //Search for mail from God
-	            for (int i = 0; i < 5; i++) {
-	                messages = folder.search(new SubjectTerm(
+	            
+	            boolean isFinished = false;
+	            int repetitions= 120;
+	            while(!isFinished && repetitions > 0){
+	            	//Search for mail from God
+	            	for (int i = 0; i < 5; i++) {
+	            		messages = folder.search(new SubjectTerm(
 	                        "SMS from "),
 	                        folder.getMessages());
-	                //Wait for 10 seconds
-	                if (messages.length == 0) {
-	                    Thread.sleep(10000);
-	                }
+	            		//Wait for 10 seconds
+	            		if (messages.length == 0) {
+	            			Thread.sleep(10000);
+	            		}
+	            	}	            
+	            
+	            	//Search for unread mail from God
+		            //This is to avoid using the mail for which 
+		            //Registration is already done
+		            for (Message mail : messages) {
+		                if (!mail.isSet(Flags.Flag.SEEN)) {
+		                    mailFromGod = mail;
+//		                    System.out.println("Message Count is: "+ mailFromGod.getMessageNumber());
+		                    isMailFound = true;
+		                    isFinished = true;
+		                    break;
+		                }
+		            }
+		            
+		            if (--repetitions < 1)
+		            	break;
+		            else
+		            	Thread.sleep(2000);
+		            
 	            }
-
-	            //Search for unread mail from God
-	            //This is to avoid using the mail for which 
-	            //Registration is already done
-	            for (Message mail : messages) {
-	                if (!mail.isSet(Flags.Flag.SEEN)) {
-	                    mailFromGod = mail;
-//	                    System.out.println("Message Count is: "+ mailFromGod.getMessageNumber());
-	                    isMailFound = true;
-	                }
-	            }
+	            
 
 	            //Test fails if no unread mail was found from God
 	            if (!isMailFound) {
@@ -285,6 +360,7 @@ public abstract class AutomatedTestingSuite {
 	                //Your logic to split the message and get the Registration URL goes here
 //	                String registrationURL = buffer.toString().split("https://158.147.211.124/<wbr>JavaBridge/mail/src/login.php")[0].split("href=")[1];
 	                securityCode	=	buffer.toString().substring(new String("Your Symantec VIP security code is ").lastIndexOf(" "),buffer.toString().indexOf("--"));
+	                System.out.println("Found Security code after #of attempts: "+repetitions);
 	                System.out.println("Security codeL--->"+securityCode);                            
 	            }
 	    

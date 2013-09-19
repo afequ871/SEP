@@ -27,7 +27,7 @@ public class Directemail extends AutomatedTestingSuite {
 	@Test
 	public void testSecureProviderEmail() throws Exception {
 		logger.info("Directemail::In Start of testing SecureProvider Email::");
-		String providerURL	=	getSecureEmailLinkFromGmail();
+		String providerURL	=	"";//getSecureEmailLinkFromGmail();
 		logger.info("Directemail::Getting the ProviderURL from  unsecure(gmail)::  Provider URL is::"+providerURL.trim());
 		driver.manage().timeouts().implicitlyWait(7, TimeUnit.SECONDS);
 		driver.get(providerURL);

@@ -2,34 +2,54 @@ package gov.va.sep.automatedtesting.suites;
 
 import static org.junit.Assert.*;
 
+import java.util.HashMap;
 import java.util.Properties;
 
 import org.junit.Test;
 import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.Select;
-import gov.va.sep.automatedtesting.objects.template.*;
+
+import gov.va.sep.automatedtesting.template.*;
+import gov.va.sep.automatedtesting.utils.LogbackFileUtils;
 
 public class SEPLoginLogout extends AutomatedTestingSuite {
 	//private static StringBuffer verificationErrors = new StringBuffer();
-	public Properties propertyFile = getTestProperties("vet1");
+	//public Properties propertyFile = getTestProperties("vet1");
 	LoginTemplate loginTemp = new LoginTemplate(propertyFile);
 	
 	@Test
-	public void LoginLogout() throws Throwable {
+	public HashMap LoginLogout() {
 		
-		logger.info(":: In Start of LoginLogout() method");
-		//r.delay(5000);
-		logger.info("**********Start open application************");
-		driver.get(getProperties().getProperty("URL"));
-		logger.info("::getting the URL from the properties file :: The URL is ::"+getProperties().getProperty("URL"));
-		r.delay(5000);
-		//Login
-		login(loginTemp);
-		logger.info("::Logged in successful::");
-		r.delay(10000); 
+		try{
+			strTime = System.currentTimeMillis();
+			LogbackFileUtils.start(this.getClass());
+			logger.info(":: In Start of LoginLogout() method");
+			//r.delay(5000);
+			logger.info("**********Start open application************");
+			driver.get(getProperties().getProperty("URL"));
+			logger.info("::getting the URL from the properties file :: The URL is ::"+getProperties().getProperty("URL"));
+			r.delay(5000);
+			//Login
+			login(loginTemp);
+			logger.info("::Logged in successful::");
+			r.delay(10000); 
+			
+			//Logout
+			logger.info("::End of LoginLogout() method ::");
+		    logout();		    
+			LogbackFileUtils.stop();
+			
+		    return returnObj;
+		}catch(Exception e){
+			logger.error("Test Failure: " + e.toString());
+			closeDriver();
+			endTime = System.currentTimeMillis();
+			buildTestStatusObj(true);
+			LogbackFileUtils.stop();
+			return returnObj;	
+		}
 		
-		//Logout
-	    logout();
 	      
 	    
 	    
@@ -172,40 +192,48 @@ public class SEPLoginLogout extends AutomatedTestingSuite {
 		
 	}
 	
-	public static void login(LoginTemplate loginTemp) throws Throwable{
+	public static void login(LoginTemplate loginTemp){
 		//Verification for login page
-		assertTrue(driver.findElement(By.cssSelector("h1")).getText().matches("^[\\s\\S]*" + loginTemp.getLoginHeaderLbl()+ "[\\s\\S]*$"));
-		assertTrue(driver.findElement(By.xpath("//a[@id='login_pass']/div")).getText().matches("^[\\s\\S]*" + loginTemp.getLoginNortonBtnLbl()+ "[\\s\\S]*$"));
+		//logger.debug("Login test debug statement");
+		//r.delay(5000);
+		verify("Test -- Verify the Login Stakeholder label text",By.xpath("//h1"),loginTemp.getLoginHeaderLbl());
+		verify("Test -- Verify the Norton Login label text",By.xpath("//a[@id='login_pass']/div"),loginTemp.getLoginNortonBtnLbl());
+		
 		driver.findElement(By.cssSelector("#login_pass > div")).click();
-		r.delay(5000);
-
-		assertTrue(driver.findElement(By.xpath("//div[@id='mm_body']/div/h3")).getText().matches("^[\\s\\S]*" + loginTemp.getLoginContinueHeaderLbl()+ "[\\s\\S]*$"));
-		assertTrue(driver.findElement(By.xpath("//a[@id='modalAction']/div")).getText().matches("^[\\s\\S]*" + loginTemp.getLoginContinueBtnLbl()+ "[\\s\\S]*$"));
+		r.delay(1000);
+		
+		verify("Test -- Verify the Login Continue header label text",By.xpath("//div[@id='mm_body']/div/h3"),loginTemp.getLoginContinueHeaderLbl());
+		verify("Test -- Verify the Login Continue Button label text",By.xpath("//a[@id='modalAction']/div"),loginTemp.getLoginContinueBtnLbl());		
 		driver.findElement(By.cssSelector("#modalAction > div")).click();
-		r.delay(5000);
+		r.delay(1000);
 
 		//Please sign in page verification and automation
-		assertTrue(driver.findElement(By.xpath("//h1[@id='theHeading']")).getText().matches("^[\\s\\S]*" + loginTemp.getLoginPleaseSignInHeaderLbl()+ "[\\s\\S]*$"));
-		assertTrue(driver.findElement(By.xpath("//input[@class='yellow_submit_button']")).getAttribute("value").matches("^[\\s\\S]*" + loginTemp.getLoginSignInBtnLbl()+ "[\\s\\S]*$"));
+		verify("Test -- Verify the Login Please SignIn header label text",By.xpath("//h1[@id='theHeading']"),loginTemp.getLoginPleaseSignInHeaderLbl());
+		verify("Test -- Verify the Login SignIn label text",By.xpath("//input[@class='yellow_submit_button']"),loginTemp.getLoginSignInBtnLbl());
+		
+		//assertTrue(driver.findElement(By.xpath("//h1[@id='theHeading']")).getText().matches("^[\\s\\S]*" + loginTemp.getLoginPleaseSignInHeaderLbl()+ "[\\s\\S]*$"));
+		//assertTrue(driver.findElement(By.xpath("//input[@class='yellow_submit_button']")).getAttribute("value").matches("^[\\s\\S]*" + loginTemp.getLoginSignInBtnLbl()+ "[\\s\\S]*$"));
 		String username = loginTemp.getLoginEmailAddress();
 		String password = loginTemp.getLoginPassword();
 		driver.findElement(By.id("username")).clear();
 		driver.findElement(By.id("username")).sendKeys(username);
 		logger.info("::The username is " + username + "::");
+		r.delay(1000);
 		driver.findElement(By.id("password")).clear();
 		driver.findElement(By.id("password")).sendKeys(password);
 		logger.info("::The password is " + password + "::");
+		r.delay(1000);
 		driver.findElement(By.cssSelector("input.yellow_submit_button")).click();
 		logger.info("::The sign in button was clicked::");
-		r.delay(8000);
+		r.delay(1000);
 
 		//Send SMS Security-code to SMS device
 		verify("Test -- Verify the Login Security code label text",By.xpath("//h1"),loginTemp.getLoginSecurityCodeHeaderLbl());
-		verify("Test -- Verify the cellphone number text",By.xpath("//div[@class='main-content']/strong"),loginTemp.getLoginSecurityCodeCellNumber());
+		verify("Test -- Verify the cell phone number text",By.xpath("//div[@class='main-content']/strong"),loginTemp.getLoginSecurityCodeCellNumber());
 		
 		driver.findElement(By.id("btn-submit")).click();
 		logger.info("::The Send button for SMS Security-code was clicked::");
-		r.delay(5000);
+		r.delay(1000);
 
 		//Retrieve SMS Security-code and submit for login
 		//driver.findElement(By.cssSelector("div.TN.GLujEb")).click();
@@ -215,19 +243,26 @@ public class SEPLoginLogout extends AutomatedTestingSuite {
 		logger.info("::The Security code is " + retrievedSMSCode + "::");
 		driver.findElement(By.id("smsCode")).clear();
 		driver.findElement(By.id("smsCode")).sendKeys(retrievedSMSCode);
+		r.delay(1000);
 		driver.findElement(By.id("btn-submit")).click();
 		logger.info("::The continue button was clicked::");			    
 	}
 	
-	public static void logout() throws Throwable{
+	public static void logout(){
+		//Logout and verify if test pass or failed
+		driver.switchTo().defaultContent();
 		driver.findElement(By.id("userLogout")).click();
-	    logger.info("::The Logout button was clicked::");
-	    
-	  //Output verification Errors
-	    String verificationErrorString = verificationErrors.toString();
-	    if (!"".equals(verificationErrorString)) {
-			logger.info("\n---Verification Errors---"+ verificationErrorString);
-		}
+		logger.info("::The Logout button was clicked::");	    
+		closeDriver();
+		
+		//Build returnObject for Test
+		endTime = System.currentTimeMillis();
+		buildTestStatusObj(false);
+	}
+	
+	public static WebElement findLogout(){
+		return driver.findElement(By.id("userLogout"));
+		
 	}
 	
 }//end of class.
