@@ -279,7 +279,7 @@ macro(build_code)
 	set(CMAKE_JAVA_INCLUDE_PATH ${JARS})
 
 	#set main entry point for project
-	set(CMAKE_JAVA_JAR_ENTRY_POINT gov.va.sep.automatedtesting.controller.AllTestSuites)
+	set(CMAKE_JAVA_JAR_ENTRY_POINT org.automatedtesting.controller.AllTestSuites)
 	
 	#delete project build files
 	clean_project()
@@ -341,8 +341,8 @@ endmacro()
 
 macro(clean_project)
 #remove project name related files including build and jars
-file (REMOVE_RECURSE "@CMAKE_BINARY_DIR@/${project_name}*")
-file (REMOVE_RECURSE "@CMAKE_BINARY_DIR@/${project_name}_DIR*")
+file (REMOVE_RECURSE "@CMAKE_BINARY_DIR@/${project_name}")
+file (REMOVE_RECURSE "@CMAKE_BINARY_DIR@/${project_name}_DIR")
 file (REMOVE_RECURSE "@CMAKE_BINARY_DIR@/${project_name}.jar")
 
 endmacro()
